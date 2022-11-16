@@ -1,11 +1,14 @@
+import Observable from '../Observable';
+
 export type Item = {
   id: string;
   description: string;
   done: boolean;
 };
-export default class TodoList {
+export default class TodoList extends Observable {
   items: Item[];
   constructor(items: Item[] = []) {
+    super();
     this.items = items;
   }
   list() {
@@ -18,6 +21,7 @@ export default class TodoList {
       done: false,
     };
     this.items.push(item);
+    this.notify('create', item);
     return item;
   }
   getItem(id: string): Item | null {
@@ -36,13 +40,14 @@ export default class TodoList {
   }
 
   toggle(id: string): void {
-    console.log(id);
     const index = this.getIndex(id);
     if (index != null && index >= 0) {
       this.items[index].done = !this.getItem(id)!.done;
+      this.notify('update', this.items[index]);
     }
   }
   remove(id: string): void {
     this.items = this.items.filter((item) => item.id != id);
+    this.notify('delete', id);
   }
 }
