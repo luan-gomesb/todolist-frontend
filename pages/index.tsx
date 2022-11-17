@@ -1,18 +1,39 @@
-import { GetStaticProps } from 'next';
+import axios from 'axios';
+import {
+  GetServerSideProps,
+  GetServerSidePropsContext,
+  GetServerSidePropsResult,
+  GetStaticProps,
+} from 'next';
 import Head from 'next/head';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import TodoList from '../src/entities/Todolist';
 import useTodoListHook from '../src/presenters/useTodoListHook';
+import TodoListObserver from '../src/TodoListObserver';
 import styles from '../styles/Home.module.css';
 type Item = {
   id: string;
   description: string;
   done: boolean;
 };
+type homeProps = {
+  data: Item[];
+};
 
-export default function Home({ data }) {
-  const [todos, todosDispatch] = useTodoListHook(data);
+export default function Home(props: homeProps) {
+  const apiURl = 'http://192.168.0.115:4000';
   const [todo, setTodo] = useState<string>('');
+  const todolist = useRef(new TodoList(props.data as Item[]));
+  const [todos, todosDispatch] = useTodoListHook(todolist.current);
+  useEffect(() => {
+    todolist.current.register(
+      new TodoListObserver('update', async (event: string, item: Item) => {
+        console.log(JSON.stringify(item));
+        var response = await axios.put(apiURl + '/todos', item);
+        console.log(response);
+      }),
+    );
+  }, []);
   const handleChange = (e: React.FormEvent<HTMLInputElement>) => {
     setTodo(e.currentTarget.value);
   };
@@ -81,9 +102,12 @@ export default function Home({ data }) {
     </div>
   );
 }
-export const getStaticProps: GetStaticProps = async (context) => {
-  const response = await fetch('http://localhost:4000/todos');
-  const todos = await response.json();
+
+export const getServerSideProps = async (
+  context: GetServerSidePropsContext,
+) => {
+  const response = await fetch(process.env.API! + '/todos');
+  const todos: Item[] = await response.json();
   return {
     props: {
       data: todos,
