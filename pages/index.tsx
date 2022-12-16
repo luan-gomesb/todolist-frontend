@@ -1,10 +1,5 @@
 import axios from 'axios';
-import {
-  GetServerSideProps,
-  GetServerSidePropsContext,
-  GetServerSidePropsResult,
-  GetStaticProps,
-} from 'next';
+import { GetServerSidePropsContext } from 'next';
 import Head from 'next/head';
 import React, { useEffect, useRef, useState } from 'react';
 import TodoList from '../src/entities/Todolist';
@@ -21,7 +16,7 @@ type homeProps = {
 };
 
 export default function Home(props: homeProps) {
-  const apiURl = 'http://192.168.0.115:4000';
+  const apiURl = process.env.NEXT_PUBLIC_API;
   const [todo, setTodo] = useState<string>('');
   const todolist = useRef(new TodoList(props.data as Item[]));
   const [todos, todosDispatch] = useTodoListHook(todolist.current);
@@ -30,6 +25,12 @@ export default function Home(props: homeProps) {
       new TodoListObserver('update', async (event: string, item: Item) => {
         console.log(JSON.stringify(item));
         var response = await axios.put(apiURl + '/todos', item);
+        console.log(response);
+      }),
+    );
+    todolist.current.register(
+      new TodoListObserver('delete', async (event: string, { id }: Item) => {
+        var response = await axios.delete(apiURl + `/todos/${id}`);
         console.log(response);
       }),
     );
@@ -106,11 +107,11 @@ export default function Home(props: homeProps) {
 export const getServerSideProps = async (
   context: GetServerSidePropsContext,
 ) => {
-  const response = await fetch(process.env.API! + '/todos');
-  const todos: Item[] = await response.json();
+  // const response = await fetch(process.env.NEXT_PUBLIC_API! + '/todos');
+  // const todos: Item[] = await response.json();
   return {
     props: {
-      data: todos,
+      data: [],
     },
   };
 };
